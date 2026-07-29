@@ -42,6 +42,7 @@ pnpm test:e2e:pr
 
 ## 产物导航
 
+- [BLOG.md](./BLOG.md)：可直接发布的项目介绍与技术实践文章
 - [TESTING_STRATEGY.md](./TESTING_STRATEGY.md)：分层架构、质量门禁、CI/CD 和治理规则
 - [REAL_REPOSITORIES.md](./REAL_REPOSITORIES.md)：真实 GitHub 仓库案例与可复用点
 - [vitest.config.ts](./vitest.config.ts)：jsdom 与 Storybook Browser 双项目
