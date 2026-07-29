@@ -1,0 +1,46 @@
+name: Bug report
+description: 报告可复现的模板、测试或 CI/CD 问题
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        请勿在公开 Issue 中提交凭据、生产数据或未修复漏洞细节。
+  - type: textarea
+    id: description
+    attributes:
+      label: 问题描述
+      description: 说明实际行为和期望行为。
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 最小复现
+      description: 提供命令、分支或最小代码示例。
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: 环境
+      description: Node、pnpm、操作系统和浏览器版本。
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: 相关日志
+      description: 请先移除凭据、Cookie、访问令牌和个人信息。
+      render: shell
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: 提交前检查
+      options:
+        - label: 我已搜索现有 Issue，未找到相同问题。
+          required: true
+        - label: 我确认内容中不包含敏感信息。
+          required: true
