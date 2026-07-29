@@ -1,0 +1,9 @@
+node_modules/
+dist/
+storybook-static/
+.stryker-tmp/
+artifacts/
+reports/
+coverage/
+playwright-report/
+test-results/
