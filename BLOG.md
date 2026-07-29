@@ -51,21 +51,7 @@
 
 Frontend Testing Blueprint 的整体流程如下：
 
-```mermaid
-flowchart LR
-  R["需求变化"] --> I["影响分析"]
-  I --> P["行为测试计划"]
-  P --> U["Vitest + Testing Library + MSW"]
-  P --> S["Storybook Browser"]
-  P --> M["Stryker"]
-  P --> E["Playwright"]
-  U --> G["Quality Gate"]
-  S --> G
-  M --> G
-  E --> G
-  G --> A["不可变构建制品"]
-  A --> D["部署"]
-```
+![从测试金字塔升级为测试证据链](https://raw.githubusercontent.com/peng-yin/frontend-testing-blueprint/main/docs/images/testing-evidence-chain.png)
 
 每一次行为变化，都必须建立下面这组映射：
 
@@ -162,27 +148,7 @@ PR 阶段：
 
 为可信的同仓库 PR 添加 `ai-test-completion` 标签后，GitHub Actions 会启动 Codex：
 
-```mermaid
-sequenceDiagram
-  participant PR as Pull Request
-  participant Gate as 授权检查
-  participant AI as Codex
-  participant Verify as 独立验证 Job
-  participant API as GitHub API
-
-  PR->>Gate: 添加 ai-test-completion
-  Gate->>Gate: 校验作者、仓库来源和分支 SHA
-  Gate->>AI: 分析完整 diff
-  AI->>AI: 补计划、单测、Story 和必要 E2E
-  AI-->>Verify: 候选变更包
-  Verify->>Verify: Impact + Vitest + Storybook + Stryker + Playwright
-  alt 全部通过
-    Verify->>API: 写回 PR 分支
-    API-->>PR: 回执 + ai-test-complete
-  else 任一失败
-    Verify-->>PR: ai-test-failed + 诊断链接
-  end
-```
+![AI 自动补测编排](https://raw.githubusercontent.com/peng-yin/frontend-testing-blueprint/main/docs/images/ai-test-orchestration.png)
 
 AI 不是门禁的替代品。它只能生成候选代码，不能自己宣布成功。
 
