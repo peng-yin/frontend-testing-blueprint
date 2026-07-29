@@ -5,6 +5,8 @@
 ## 验证
 
 - [ ] 已运行 `pnpm verify`
+- [ ] 已创建或更新 `.testing/plans/*.json`
+- [ ] 已运行 `pnpm test:impact -- --working-tree`
 - [ ] 已运行 `pnpm test:e2e:pr`，或说明不适用原因
 - [ ] 行为变化已补充最低必要层级的测试
 - [ ] Storybook 变化已覆盖交互与无障碍状态
