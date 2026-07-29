@@ -24,9 +24,12 @@
     "test:e2e": "playwright test",
     "test:e2e:pr": "playwright test --project=chromium",
     "test:mutation": "stryker run",
+    "test:impact": "node scripts/test-impact.mjs",
+    "test:impact:self": "node --test scripts/*.test.mjs",
+    "test:receipt": "node scripts/test-receipt.mjs",
     "storybook": "storybook dev -p 6006 --no-open",
     "build-storybook": "storybook build",
-    "verify": "pnpm typecheck && pnpm lint && pnpm test:coverage && pnpm test:stories && pnpm build",
+    "verify": "pnpm typecheck && pnpm lint && pnpm test:impact:self && pnpm test:coverage && pnpm test:stories && pnpm build",
     "prepare": "node scripts/prepare.mjs"
   },
   "lint-staged": {
