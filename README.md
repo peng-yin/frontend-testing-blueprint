@@ -1,0 +1,72 @@
+# Frontend Testing Blueprint
+
+一套可直接运行、可裁剪到真实 React/Vite 仓库的前端测试参考实现。版本组合于
+2026-07-29 校验，覆盖：
+
+- Vitest 4 + jsdom + Testing Library
+- Storybook 10 + Vitest Browser Mode
+- Stryker + Vitest Runner
+- Playwright E2E
+- MSW 2（Vitest Node 与 Storybook Browser）
+- ESLint 10 + Husky + lint-staged + Commitlint
+- GitHub Actions CI、夜间测试与 GitHub Pages CD
+
+## 快速运行
+
+环境要求：Node.js 24+、Corepack。
+
+```bash
+corepack enable
+pnpm install
+pnpm exec msw init public --save
+pnpm exec playwright install chromium
+pnpm verify
+pnpm test:e2e:pr
+```
+
+常用命令：
+
+| 目标                     | 命令                 |
+| ------------------------ | -------------------- |
+| Vitest 监听模式          | `pnpm test`          |
+| 单元/集成测试            | `pnpm test:unit`     |
+| 覆盖率门禁               | `pnpm test:coverage` |
+| Storybook 浏览器组件测试 | `pnpm test:stories`  |
+| Storybook UI             | `pnpm storybook`     |
+| PR 级 Chromium E2E       | `pnpm test:e2e:pr`   |
+| 全浏览器 E2E             | `pnpm test:e2e`      |
+| Stryker 变异测试         | `pnpm test:mutation` |
+| 本地完整校验             | `pnpm verify`        |
+
+## 产物导航
+
+- [TESTING_STRATEGY.md](./TESTING_STRATEGY.md)：分层架构、质量门禁、CI/CD 和治理规则
+- [REAL_REPOSITORIES.md](./REAL_REPOSITORIES.md)：真实 GitHub 仓库案例与可复用点
+- [vitest.config.ts](./vitest.config.ts)：jsdom 与 Storybook Browser 双项目
+- [stryker.config.mjs](./stryker.config.mjs)：变异测试配置
+- [playwright.config.ts](./playwright.config.ts)：三浏览器、重试与 Trace
+- [.github/workflows/ci.yml](./.github/workflows/ci.yml)：PR 质量门禁
+- [.github/workflows/deploy-pages.yml](./.github/workflows/deploy-pages.yml)：复用已测试制品的 CD
+
+## 示例如何串起来
+
+同一个 `UserProfile` 场景贯穿全部测试层：
+
+1. `UserProfile.test.tsx` 在 jsdom 中通过 Testing Library 驱动用户行为，通过 MSW
+   Node 拦截真实 `fetch`。
+2. `UserProfile.stories.tsx` 定义成功、错误、加载三个 UI 状态；`play` 函数在
+   Chromium 中执行。
+3. `user-profile.spec.ts` 对生产构建执行 Playwright E2E。
+4. Stryker 修改 API 与组件实现，确认这些测试能真正杀死错误实现。
+
+这套模板刻意不让每一层重复同样的断言：jsdom 覆盖业务分支，Storybook 覆盖组件状态，
+Playwright 只保留跨边界关键路径。
+
+## 迁入真实仓库
+
+先复制配置与 `test/setup.ts`，再按
+[TESTING_STRATEGY.md 的落地路线](./TESTING_STRATEGY.md#落地路线) 分阶段启用门禁。
+不要第一天把所有历史债务设为阻塞；先记录基线，再对新增代码执行不回退策略。
+
+> 当前 `typescript-eslint@8.65.0` 的 TypeScript peer range 小于 6.1，因此模板固定
+> TypeScript 6.0.3，而不是 npm 当前的 TypeScript 7。升级前先验证该兼容边界。
