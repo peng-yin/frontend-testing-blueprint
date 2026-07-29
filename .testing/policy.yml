@@ -1,0 +1,89 @@
+{
+  "version": 1,
+  "planPattern": ".testing/plans/*.json",
+  "requireChangedEvidence": true,
+  "ignored":
+    [
+      "**/*.md",
+      "LICENSE",
+      "pnpm-lock.yaml",
+      "public/mockServiceWorker.js",
+      ".github/ISSUE_TEMPLATE/**/*",
+      ".github/pull_request_template.md",
+      ".testing/**/*",
+    ],
+  "rules":
+    [
+      {
+        "id": "component",
+        "include": ["src/components/**/*.tsx"],
+        "exclude": ["**/*.test.tsx", "**/*.stories.tsx"],
+        "required": ["unit", "storybook", "mutation"],
+      },
+      {
+        "id": "api",
+        "include": ["src/api/**/*.ts"],
+        "exclude": ["**/*.test.ts"],
+        "required": ["unit", "mutation"],
+      },
+      {
+        "id": "critical-app-entry",
+        "include": ["src/App.tsx", "src/main.tsx"],
+        "exclude": [],
+        "required": ["unit", "e2e"],
+      },
+      {
+        "id": "source-default",
+        "include": ["src/**/*.ts", "src/**/*.tsx"],
+        "exclude":
+          [
+            "src/**/*.test.ts",
+            "src/**/*.test.tsx",
+            "src/**/*.stories.ts",
+            "src/**/*.stories.tsx",
+            "src/mocks/**/*",
+            "src/App.tsx",
+            "src/main.tsx",
+          ],
+        "required": ["unit", "mutation"],
+      },
+      {
+        "id": "visual-style",
+        "include": ["src/**/*.css"],
+        "exclude": [],
+        "required": ["storybook"],
+      },
+      {
+        "id": "test-infrastructure",
+        "include":
+          [
+            "package.json",
+            "eslint.config.mjs",
+            "commitlint.config.mjs",
+            "tsconfig*.json",
+            "vitest*.ts",
+            "playwright.config.ts",
+            "stryker.config.mjs",
+            ".storybook/**/*",
+            ".github/workflows/**/*",
+            "test/**/*",
+            "scripts/**/*",
+          ],
+        "exclude": ["scripts/*.test.mjs"],
+        "required": [],
+      },
+    ],
+  "evidencePatterns":
+    {
+      "unit": ["**/*.test.ts", "**/*.test.tsx"],
+      "storybook": ["**/*.stories.ts", "**/*.stories.tsx"],
+      "mutation":
+        [
+          "**/*.test.ts",
+          "**/*.test.tsx",
+          "stryker.config.mjs",
+          "stryker.*.config.mjs",
+        ],
+      "e2e": ["e2e/**/*.spec.ts", "e2e/**/*.spec.tsx"],
+    },
+}
