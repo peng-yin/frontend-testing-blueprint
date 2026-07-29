@@ -21,9 +21,14 @@ pnpm test:e2e:pr
 
 1. 从 `main` 创建功能分支。
 2. 保持改动范围单一，并为行为变化补充相应层级的测试。
-3. 使用 Conventional Commits，例如 `feat: add visual regression gate`。
-4. 提交 PR，并完成 PR 模板中的检查项。
-5. 等待 `Quality gate` 通过和至少一名维护者批准。
+3. 创建或更新 `.testing/plans/*.json`，运行
+   `pnpm test:impact -- --working-tree`，确认行为、源码与测试证据一一对应。
+4. 使用 Conventional Commits，例如 `feat: add visual regression gate`。
+5. 提交 PR，并完成 PR 模板中的检查项。
+6. 等待 `Quality gate` 通过和至少一名维护者批准。
+
+如果需要 AI 自动补齐受影响测试，由可信维护者为同仓库 PR 添加
+`ai-test-completion` 标签。自动生成内容仍须经过全量门禁与人工评审。
 
 ## 测试层级选择
 
@@ -37,8 +42,8 @@ pnpm test:e2e:pr
 
 ## 质量要求
 
-PR 必须通过类型检查、ESLint、格式检查、覆盖率、Storybook 浏览器测试、生产构建和
-Chromium E2E。涉及测试关键逻辑的改动还应手动运行：
+PR 必须通过需求影响检查、类型检查、ESLint、格式检查、覆盖率、Storybook 浏览器测试、
+生产构建和 Chromium E2E。涉及测试关键逻辑的改动还应手动运行：
 
 ```bash
 pnpm test:mutation
