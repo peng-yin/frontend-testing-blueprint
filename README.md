@@ -68,5 +68,13 @@ Playwright 只保留跨边界关键路径。
 [TESTING_STRATEGY.md 的落地路线](./TESTING_STRATEGY.md#落地路线) 分阶段启用门禁。
 不要第一天把所有历史债务设为阻塞；先记录基线，再对新增代码执行不回退策略。
 
+## 项目治理
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md)：开发、测试与 PR 贡献规范
+- [SECURITY.md](./SECURITY.md)：漏洞报告和测试数据安全要求
+- [LICENSE](./LICENSE)：MIT License
+- [Issue 模板](./.github/ISSUE_TEMPLATE)：Bug 与通用能力建议
+- [PR 模板](./.github/pull_request_template.md)：远程质量门禁检查清单
+
 > 当前 `typescript-eslint@8.65.0` 的 TypeScript peer range 小于 6.1，因此模板固定
 > TypeScript 6.0.3，而不是 npm 当前的 TypeScript 7。升级前先验证该兼容边界。
