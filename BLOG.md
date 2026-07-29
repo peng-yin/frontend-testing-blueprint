@@ -51,7 +51,7 @@
 
 Frontend Testing Blueprint 的整体流程如下：
 
-![从测试金字塔升级为测试证据链](https://raw.githubusercontent.com/peng-yin/frontend-testing-blueprint/main/docs/images/testing-evidence-chain.png)
+![从测试金字塔升级为测试证据链](https://cdn.jsdelivr.net/gh/peng-yin/frontend-testing-blueprint@main/docs/images/testing-evidence-chain.png)
 
 每一次行为变化，都必须建立下面这组映射：
 
@@ -148,7 +148,7 @@ PR 阶段：
 
 为可信的同仓库 PR 添加 `ai-test-completion` 标签后，GitHub Actions 会启动 Codex：
 
-![AI 自动补测编排](https://raw.githubusercontent.com/peng-yin/frontend-testing-blueprint/main/docs/images/ai-test-orchestration.png)
+![AI 自动补测编排](https://cdn.jsdelivr.net/gh/peng-yin/frontend-testing-blueprint@main/docs/images/ai-test-orchestration.png)
 
 AI 不是门禁的替代品。它只能生成候选代码，不能自己宣布成功。
 
