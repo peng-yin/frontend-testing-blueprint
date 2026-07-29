@@ -10,6 +10,7 @@
 - MSW 2（Vitest Node 与 Storybook Browser）
 - ESLint 10 + Husky + lint-staged + Commitlint
 - GitHub Actions CI、夜间测试与 GitHub Pages CD
+- 基于变更影响的 Codex 自动补测与验证后回写
 
 ## 快速运行
 
@@ -26,17 +27,18 @@ pnpm test:e2e:pr
 
 常用命令：
 
-| 目标                     | 命令                 |
-| ------------------------ | -------------------- |
-| Vitest 监听模式          | `pnpm test`          |
-| 单元/集成测试            | `pnpm test:unit`     |
-| 覆盖率门禁               | `pnpm test:coverage` |
-| Storybook 浏览器组件测试 | `pnpm test:stories`  |
-| Storybook UI             | `pnpm storybook`     |
-| PR 级 Chromium E2E       | `pnpm test:e2e:pr`   |
-| 全浏览器 E2E             | `pnpm test:e2e`      |
-| Stryker 变异测试         | `pnpm test:mutation` |
-| 本地完整校验             | `pnpm verify`        |
+| 目标                     | 命令                                 |
+| ------------------------ | ------------------------------------ |
+| Vitest 监听模式          | `pnpm test`                          |
+| 单元/集成测试            | `pnpm test:unit`                     |
+| 覆盖率门禁               | `pnpm test:coverage`                 |
+| Storybook 浏览器组件测试 | `pnpm test:stories`                  |
+| Storybook UI             | `pnpm storybook`                     |
+| PR 级 Chromium E2E       | `pnpm test:e2e:pr`                   |
+| 全浏览器 E2E             | `pnpm test:e2e`                      |
+| Stryker 变异测试         | `pnpm test:mutation`                 |
+| 需求影响与测试计划门禁   | `pnpm test:impact -- --working-tree` |
+| 本地完整校验             | `pnpm verify`                        |
 
 ## 产物导航
 
@@ -47,6 +49,18 @@ pnpm test:e2e:pr
 - [playwright.config.ts](./playwright.config.ts)：三浏览器、重试与 Trace
 - [.github/workflows/ci.yml](./.github/workflows/ci.yml)：PR 质量门禁
 - [.github/workflows/deploy-pages.yml](./.github/workflows/deploy-pages.yml)：复用已测试制品的 CD
+- [AI_TEST_AUTOMATION.md](./AI_TEST_AUTOMATION.md)：每次需求变更自动补齐测试的安全编排
+- [.github/workflows/ai-test-completion.yml](./.github/workflows/ai-test-completion.yml)：AI 补测工作流
+
+## AI 自动补测
+
+行为变化必须用 `.testing/plans/*.json` 建立“需求行为 → 源码 → 必需测试层 → 测试证据”
+映射。CI 会根据 `.testing/policy.yml` 拒绝漏测变更。为可信的同仓库 PR 添加
+`ai-test-completion` 标签后，Codex 会补齐受影响测试，并依次执行 Vitest、Storybook、
+Stryker 和 Playwright；所有门禁通过后才通过 GitHub API 写回 PR 分支。
+
+启用前只需配置 `OPENAI_API_KEY` Repository Secret。完整机制、安全边界和操作方式见
+[AI_TEST_AUTOMATION.md](./AI_TEST_AUTOMATION.md)。
 
 ## 示例如何串起来
 
