@@ -1,0 +1,67 @@
+{
+  "$schema": "../test-plan.schema.json",
+  "version": 1,
+  "change_id": "ai-test-orchestration",
+  "summary": "Add an impact-driven Codex workflow that completes and verifies every required test layer.",
+  "behaviors": [
+    {
+      "id": "impact-policy-gate",
+      "description": "Reject behavior changes that are missing a changed test plan or required test evidence.",
+      "risk": "high",
+      "source": [
+        "package.json",
+        "eslint.config.mjs",
+        "scripts/test-impact.mjs",
+        "scripts/test-receipt.mjs",
+        ".github/workflows/ci.yml"
+      ],
+      "required_tests": {
+        "unit": false,
+        "storybook": false,
+        "mutation": false,
+        "e2e": false
+      },
+      "evidence": {
+        "unit": [],
+        "storybook": [],
+        "mutation": [],
+        "e2e": []
+      },
+      "commands": [
+        "pnpm test:impact:self",
+        "pnpm test:impact -- --working-tree",
+        "pnpm verify"
+      ]
+    },
+    {
+      "id": "secure-ai-pr-loop",
+      "description": "Run Codex only for trusted same-repository PRs and publish verified changes through the Contents API.",
+      "risk": "critical",
+      "source": [
+        "scripts/ai-change-bundle.mjs",
+        ".github/workflows/ai-test-completion.yml"
+      ],
+      "required_tests": {
+        "unit": false,
+        "storybook": false,
+        "mutation": false,
+        "e2e": false
+      },
+      "evidence": {
+        "unit": [],
+        "storybook": [],
+        "mutation": [],
+        "e2e": []
+      },
+      "commands": [
+        "pnpm test:impact:self",
+        "pnpm format:check",
+        "ruby YAML syntax validation"
+      ],
+      "notes": [
+        "Fork PRs and untrusted author associations are rejected before the secret-bearing job.",
+        "The publisher checks the expected branch SHA and never invokes git push."
+      ]
+    }
+  ]
+}
