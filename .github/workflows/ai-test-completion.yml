@@ -1,0 +1,314 @@
+name: AI test completion
+
+on:
+  pull_request:
+    types: [labeled, synchronize, reopened]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Pull request number
+        required: true
+        type: number
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ai-test-completion-${{ github.event.pull_request.number || inputs.pr_number }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 24
+
+jobs:
+  resolve:
+    name: Authorize request
+    runs-on: ubuntu-latest
+    outputs:
+      should_run: ${{ steps.resolve.outputs.should_run }}
+      pr_number: ${{ steps.resolve.outputs.pr_number }}
+      head_ref: ${{ steps.resolve.outputs.head_ref }}
+      head_sha: ${{ steps.resolve.outputs.head_sha }}
+      base_sha: ${{ steps.resolve.outputs.base_sha }}
+    steps:
+      - id: resolve
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const number = context.eventName === 'workflow_dispatch'
+              ? Number(context.payload.inputs.pr_number)
+              : context.payload.pull_request.number;
+            const { data: pull } = await github.rest.pulls.get({
+              ...context.repo,
+              pull_number: number,
+            });
+            const trusted = ['OWNER', 'MEMBER', 'COLLABORATOR'].includes(
+              pull.author_association,
+            );
+            const sameRepository = pull.head.repo?.full_name ===
+              `${context.repo.owner}/${context.repo.repo}`;
+            const labeled = pull.labels.some(({ name }) => name === 'ai-test-completion');
+            const humanActor = context.actor !== 'github-actions[bot]';
+            const requested = context.eventName === 'workflow_dispatch' || labeled;
+            core.setOutput('should_run', String(
+              trusted && sameRepository && humanActor && requested,
+            ));
+            core.setOutput('pr_number', String(number));
+            core.setOutput('head_ref', pull.head.ref);
+            core.setOutput('head_sha', pull.head.sha);
+            core.setOutput('base_sha', pull.base.sha);
+
+  generate:
+    name: Generate candidate tests
+    needs: resolve
+    if: needs.resolve.outputs.should_run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.resolve.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - name: Require the AI credential
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: test -n "$OPENAI_API_KEY"
+      - name: Complete affected tests
+        uses: openai/codex-action@52fe01ec70a42f454c9d2ebd47598f9fd6893d56 # v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          prompt-file: .github/codex/prompts/test-completion.md
+          permission-profile: ":workspace"
+          safety-strategy: drop-sudo
+          allow-users: ${{ github.actor }}
+          codex-args: '["--ephemeral"]'
+          output-file: artifacts/ai-test-completion/codex-output.md
+        env:
+          PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+          BASE_SHA: ${{ needs.resolve.outputs.base_sha }}
+          HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
+      - name: Package workspace changes
+        run: >-
+          node scripts/ai-change-bundle.mjs create
+          --output artifacts/ai-test-completion/changes.json
+      - name: Upload candidate
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ai-test-candidate-${{ needs.resolve.outputs.pr_number }}
+          path: artifacts/ai-test-completion
+          retention-days: 3
+
+  verify:
+    name: Verify every test layer
+    needs: [resolve, generate]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          ref: ${{ needs.resolve.outputs.head_sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: ai-test-candidate-${{ needs.resolve.outputs.pr_number }}
+          path: artifacts/ai-test-completion
+      - run: >-
+          node scripts/ai-change-bundle.mjs apply
+          --input artifacts/ai-test-completion/changes.json
+      - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm test:impact -- --working-tree
+      - run: pnpm verify
+      - run: pnpm test:mutation
+      - run: pnpm test:e2e:pr
+      - name: Create verification receipt
+        run: >-
+          pnpm test:receipt -- --working-tree
+          --output artifacts/ai-test-completion/test-receipt.md
+      - name: Upload verified evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ai-test-evidence-${{ needs.resolve.outputs.pr_number }}
+          path: artifacts/ai-test-completion/test-receipt.md
+          retention-days: 14
+      - name: Upload test diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: ai-test-diagnostics-${{ needs.resolve.outputs.pr_number }}
+          path: |
+            artifacts/coverage
+            reports/mutation
+            artifacts/stryker
+            artifacts/playwright-report
+            artifacts/playwright-results
+          if-no-files-found: ignore
+          retention-days: 14
+
+  publish:
+    name: Publish verified changes
+    needs: [resolve, generate, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: ai-test-candidate-${{ needs.resolve.outputs.pr_number }}
+          path: artifacts/ai-test-completion
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: ai-test-evidence-${{ needs.resolve.outputs.pr_number }}
+          path: artifacts/verified-evidence
+      - name: Commit through the GitHub Contents API
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+          HEAD_REF: ${{ needs.resolve.outputs.head_ref }}
+          EXPECTED_HEAD_SHA: ${{ needs.resolve.outputs.head_sha }}
+        with:
+          script: |
+            const fs = require('node:fs');
+            const bundle = JSON.parse(
+              fs.readFileSync('artifacts/ai-test-completion/changes.json', 'utf8'),
+            );
+            if (bundle.version !== 1 ||
+                bundle.expected_head_sha !== process.env.EXPECTED_HEAD_SHA) {
+              core.setFailed('Candidate was generated from a different PR revision.');
+              return;
+            }
+            const safePath = (value) => {
+              const path = value.replaceAll('\\', '/').replace(/^\.\/+/, '');
+              if (!path || path.startsWith('/') || path === '..' ||
+                  path.startsWith('../') || path.includes('/../') ||
+                  path.includes('\0')) {
+                throw new Error(`Unsafe repository path: ${value}`);
+              }
+              return path;
+            };
+            if (!Array.isArray(bundle.changes) || bundle.changes.length > 100) {
+              throw new Error('Candidate contains too many changes.');
+            }
+            let expectedBranchSha = process.env.EXPECTED_HEAD_SHA;
+            for (const change of bundle.changes) {
+              const path = safePath(change.path);
+              const { data: branch } = await github.rest.repos.getBranch({
+                ...context.repo,
+                branch: process.env.HEAD_REF,
+              });
+              if (branch.commit.sha !== expectedBranchSha) {
+                throw new Error('PR branch changed while verified changes were publishing.');
+              }
+              let current;
+              try {
+                ({ data: current } = await github.rest.repos.getContent({
+                  ...context.repo,
+                  path,
+                  ref: process.env.HEAD_REF,
+                }));
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+              let response;
+              if (change.status === 'delete') {
+                if (!current || Array.isArray(current)) continue;
+                response = await github.rest.repos.deleteFile({
+                  ...context.repo,
+                  path,
+                  branch: process.env.HEAD_REF,
+                  sha: current.sha,
+                  message: `test(ai): remove ${path}`,
+                });
+              } else if (change.status === 'upsert') {
+                if (Buffer.from(change.content, 'base64').byteLength > 1024 * 1024) {
+                  throw new Error(`${path} exceeds 1 MiB.`);
+                }
+                response = await github.rest.repos.createOrUpdateFileContents({
+                  ...context.repo,
+                  path,
+                  branch: process.env.HEAD_REF,
+                  sha: current && !Array.isArray(current) ? current.sha : undefined,
+                  content: change.content,
+                  message: `test(ai): complete ${path}`,
+                });
+              } else {
+                throw new Error(`Unsupported change status for ${path}.`);
+              }
+              expectedBranchSha = response.data.commit.sha;
+            }
+            const receipt = fs.readFileSync(
+              'artifacts/verified-evidence/test-receipt.md',
+              'utf8',
+            );
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body: `${receipt}\n\nPublished by ${context.workflow}.`,
+            });
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              labels: ['ai-test-complete'],
+            });
+            for (const name of ['ai-test-completion', 'ai-test-failed']) {
+              try {
+                await github.rest.issues.removeLabel({
+                  ...context.repo,
+                  issue_number: Number(process.env.PR_NUMBER),
+                  name,
+                });
+              } catch (error) {
+                if (error.status !== 404) throw error;
+              }
+            }
+
+  report-failure:
+    name: Report failure
+    if: >-
+      ${{
+        always() &&
+        needs.resolve.outputs.pr_number != '' &&
+        (
+          needs.generate.result == 'failure' ||
+          needs.verify.result == 'failure' ||
+          needs.publish.result == 'failure'
+        )
+      }}
+    needs: [resolve, generate, verify, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        env:
+          PR_NUMBER: ${{ needs.resolve.outputs.pr_number }}
+        with:
+          script: |
+            const runUrl =
+              `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}` +
+              `/actions/runs/${context.runId}`;
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              body: `AI test completion failed. Inspect the [workflow run](${runUrl}).`,
+            });
+            await github.rest.issues.addLabels({
+              ...context.repo,
+              issue_number: Number(process.env.PR_NUMBER),
+              labels: ['ai-test-failed'],
+            });
