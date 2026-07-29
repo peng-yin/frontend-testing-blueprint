@@ -1,0 +1,46 @@
+name: Feature request
+description: 建议新的测试能力、质量门禁或通用场景
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: 要解决的问题
+      description: 描述当前缺口，而不只是期望添加的工具。
+    validations:
+      required: true
+  - type: dropdown
+    id: layer
+    attributes:
+      label: 主要影响层级
+      options:
+        - 单元/集成测试
+        - Storybook 组件测试
+        - Playwright E2E
+        - Stryker 变异测试
+        - CI/CD
+        - 仓库治理
+        - 文档
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: 建议方案
+      description: 说明预期行为、门禁方式和迁移成本。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: 备选方案
+      description: 列出考虑过的替代方式及其权衡。
+  - type: checkboxes
+    id: scope
+    attributes:
+      label: 通用性确认
+      options:
+        - label: 该能力适用于多个真实仓库，而不只针对单一业务。
+          required: true
