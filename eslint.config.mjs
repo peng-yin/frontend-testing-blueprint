@@ -54,6 +54,10 @@ export default tseslint.config(
     },
   },
   {
+    files: ["scripts/**/*.mjs"],
+    ...tseslint.configs.disableTypeChecked,
+  },
+  {
     files: ["src/**/*.test.{ts,tsx}", "test/**/*.{ts,tsx}"],
     plugins: {
       "testing-library": testingLibrary,
