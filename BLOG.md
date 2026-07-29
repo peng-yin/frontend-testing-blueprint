@@ -51,7 +51,16 @@
 
 Frontend Testing Blueprint 的整体流程如下：
 
-![从测试金字塔升级为测试证据链](https://cdn.jsdelivr.net/gh/peng-yin/frontend-testing-blueprint@main/docs/images/testing-evidence-chain.png)
+**需求变化 → 影响分析 → 行为测试计划**
+
+| 测试证据层     | 证明的行为                     |
+| -------------- | ------------------------------ |
+| Vitest         | 单元逻辑、状态变化和异常分支   |
+| Storybook      | 组件状态与真实浏览器交互       |
+| Stryker        | 测试能否发现被故意修改的实现   |
+| Playwright E2E | 生产构建上的跨页面关键用户路径 |
+
+**四类测试证据 → Quality Gate → 不可变构建制品 → 部署**
 
 每一次行为变化，都必须建立下面这组映射：
 
@@ -148,7 +157,14 @@ PR 阶段：
 
 为可信的同仓库 PR 添加 `ai-test-completion` 标签后，GitHub Actions 会启动 Codex：
 
-![AI 自动补测编排](https://cdn.jsdelivr.net/gh/peng-yin/frontend-testing-blueprint@main/docs/images/ai-test-orchestration.png)
+| 阶段         | 自动化动作                                         | 输出                       |
+| ------------ | -------------------------------------------------- | -------------------------- |
+| 1. 可信 PR   | 校验作者、同仓库来源和当前分支 SHA                 | 已授权的变更上下文         |
+| 2. Codex 补测 | 分析完整 diff，补测试计划、单测、Story 和必要 E2E | 候选变更包                 |
+| 3. 独立验证  | 执行 Impact、Vitest、Storybook、Stryker、Playwright | 不持有 AI Key 的验证回执   |
+| 4. 受控写回  | 再次校验分支 SHA，通过 GitHub API 写回             | `ai-test-complete` 或诊断信息 |
+
+**全部通过 → 写回 PR；任一失败 → `ai-test-failed` + 诊断链接**
 
 AI 不是门禁的替代品。它只能生成候选代码，不能自己宣布成功。
 
