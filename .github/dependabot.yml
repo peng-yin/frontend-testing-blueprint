@@ -1,0 +1,22 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      testing-stack:
+        patterns:
+          - vitest
+          - "@vitest/*"
+          - "@testing-library/*"
+          - storybook
+          - "@storybook/*"
+          - "@stryker-mutator/*"
+          - "@playwright/*"
+          - msw
+          - msw-storybook-addon
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
